@@ -117,7 +117,7 @@
 - Updated Ballerina version from Swan Lake Update 3 (2201.3.1) -> Swan Lake Update 5 (2201.5.0).
 - Updated license headers. (`Inc.` -> `LLC.`)
 - Updated Ballerina module import order. ([order of imports](https://learn-ballerina.github.io/best_practices/format_the_code.html?highlight=import#order-of-the-imports-in-a-bal-file))
-- Renamed [types] `ConfSalesforce` Saleforce configuration record -> `ConfAuthSalesforce`.
+- Renamed [types] `ConfSalesforce` Salesforce configuration record -> `ConfAuthSalesforce`.
 - Updated [types] `ConfAuthSalesforce` by updating fields.
   - Removed `baseUrl` [string]
 - Updated [types] `ConfDatabase` by updating fields.
@@ -199,7 +199,7 @@
 ### New
 - Added [ConfErrorEmail] configuration record for email service client.
 - Added [sendErrorEmail()] util function to report failures via email.
-- Added `IS_PROD` boolean configurable to dynamically handle enviroment based varibales/logic.
+- Added `IS_PROD` boolean configurable to dynamically handle environment based variables/logic.
 ## Version: 1.0.4
 ### New
 - Added `/info/{syncObject}` resource endpoint to fetch sync status information.
@@ -210,7 +210,7 @@
 - Added [dbGetLastSyncLog()] database function to retrieve last sync log matching the given criteria (status, sync object type).
 - Added [dbCheckProcessing()] database function to check whether any active syncs are being processed.
 - Added `400:Bad Request` error response in `/{syncObject}` resource endpoint for providing unsupported sync object types.
-- Added [ackCaller()] util function to ackowledge the service caller. _(added to avoid METHOD TOO LARGE Ballerina issue)_
+- Added [ackCaller()] util function to acknowledge the service caller. _(added to avoid METHOD TOO LARGE Ballerina issue)_
 - Added [processSyncObject()] util function to process the provided sync object. _(added to avoid METHOD TOO LARGE Ballerina issue)_
 ### Changes
 - Updated `mysql:Client` database client server timezone in connection options to `UTC`, to fetch log times from database as UTC timezone timestamps. (since within the service all times are processed in UTC timezone.)
@@ -219,7 +219,7 @@
 - Removed the following fields from the `ConfSFSync` record, as these values are dynamically fetched from the database.
   - lastStartedTime
   - lastSuccessTime
-- Removed cache storage of `ConfSFSync` record type configs, as sync log times are removed from the cache and dynamically fetcehd from the database.
+- Removed cache storage of `ConfSFSync` record type configs, as sync log times are removed from the cache and dynamically fetched from the database.
 - Updated [cacheInit()] util function by removing the initialisation of sync (`ConfSFSync`) configs.
 - Updated [cacheSyncStatus()] util function by using database fetched sync times for comparison, instead of using (now removed) cached sync times.
 - Updated [cacheSyncStatus()] util function by removing the update logic for the (now removed) cached sync start time.
