@@ -232,7 +232,7 @@ type SFOpportunitySyncRecord record {
     SFRecordType? RecordType;
 };
 
-# [Salesforce] Record type details.
+# [Salesforce] Record type record.
 public type SFRecordType record {
     # Name of the record type (Renewal, Expansion, First Sale etc.)
     string? Name;
