@@ -21,7 +21,6 @@ final readonly & SyncObject[] supportedSyncObjs = [ACCOUNT, OPPORTUNITY];
 
 # Sync Salesforce objects to a managed database.
 # 
-# Owner: YUK7HI
 # Version: 1.0.0
 @display {
     label: "Salesforce Sync Service",
