@@ -21,7 +21,7 @@ enum SyncObject {
     OPPORTUNITY
 }
 
-# Sync log statuses used on the log table in database
+# Sync log statuses used on the log table in database.
 enum LogStatus {
     PROCESSING = "Processing",
     COMPLETED = "Completed",
