@@ -16,8 +16,7 @@
 import ballerina/log;
 import ballerina/time;
 
-# Process the sync by retrieving the data from Salesforce and updating the 
-# database for the given sync object type.
+# Process the sync by retrieving the data from Salesforce and updating the database for the given sync object type.
 # (This function was written to avoid METHOD TOO LARGE Ballerina error)
 # 
 # + syncObj - Sync object to process
@@ -52,8 +51,7 @@ function checkSyncStatus(string syncObj) returns boolean|error {
     time:Utc timeCurrent = time:utcNow();
     time:Utc timeLastSuccess = [0];
     
-    // If prior sync logs exist in the log table (database), get the last success 
-    // sync time from the database
+    // If prior sync logs exist in the log table (database), get the last success sync time from the database
     DBSyncLogTimes? syncTimes = check dbGetLastSyncLog(COMPLETED, syncObj);
     if syncTimes !is () {
         timeLastSuccess = syncTimes.end_time;

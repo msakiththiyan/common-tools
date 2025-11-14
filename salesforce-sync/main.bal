@@ -27,7 +27,7 @@ final readonly & SyncObject[] supportedSyncObjs = [ACCOUNT, OPPORTUNITY];
     id: "sales/salesforce-sync-cron"
 }
 public function main() {
-    // Whether the sync executed atleast once
+    // Whether the sync executed at least once
     boolean isSyncExecuted = false;
     do {
         foreach SyncObject syncObject in supportedSyncObjs {

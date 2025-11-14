@@ -23,7 +23,7 @@ configurable DatabaseConf syncDbConf = ?;
 
 const BATCH_SIZE = 100;
 
-// Initialise Azure MySQL Client
+// Initialize Azure MySQL Client
 @display {
     label: "Salesforce Sync Database Client",
     id: "salesforce-sync-database-client"
@@ -122,10 +122,8 @@ function dbInsertSyncLog(LogStatus status, string syncObj, int logIndex = -1) re
     }
 }
 
-# Check whether any sync processes are currently running by querying the 
-# last log entry status on the database.
-# If the processing log found is older than 1 hour, they are ignored as 
-# faulty/errorneous log entries.
+# Check whether any sync processes are currently running by querying the last log entry status on the database.
+# If the processing log found is older than 1 hour, they are ignored as faulty/erroneous log entries.
 # 
 # + return - Sync processing (active) status as a `boolean`
 function dbCheckProcessing() returns boolean|error {
@@ -153,8 +151,7 @@ function dbCheckProcessing() returns boolean|error {
     }
 }
 
-# Retrieve the last sync log times with the given end sync status for the given 
-# sync object type from the databse.
+# Retrieve the last sync log times with the given end sync status for the given sync object type from the database.
 # 
 # + status - [`COMPLETED`|`FAILED`] - End log status
 # + syncObj - Salesforce (object) sync type
@@ -190,8 +187,7 @@ function dbGetLastSyncLog(LogStatus status, string syncObj) returns DBSyncLogTim
     }
 }
 
-# Generate shadow tables of the Salesforce sync tables by calling 
-# a stored procedure in the database.
+# Generate shadow tables of the Salesforce sync tables by calling a stored procedure in the database.
 # 
 # + return - `()` on successful table generation
 function dbShadowCopy() returns error? {
@@ -200,11 +196,10 @@ function dbShadowCopy() returns error? {
     check result.close();
 }
 
-# Generate the sync initialisation SQL query for
-# given Salesforce object records type.
+# Generate the sync initialization SQL query for given Salesforce object records type.
 # 
 # + records - Salesforce object records array
-# + return - Generated initialise query as a `sql:ParameterizedQuery`
+# + return - Generated initialize query as a `sql:ParameterizedQuery`
 function dbPrepareInitQuery(any[] records) returns sql:ParameterizedQuery|error {
     if records is SFAccountSyncRecord[] {
         return `UPDATE sf_account SET IsInSF = 0`;
@@ -216,8 +211,7 @@ function dbPrepareInitQuery(any[] records) returns sql:ParameterizedQuery|error 
         + string `(${(typeof records).toString()}) not defined.`);
 }
 
-# Generate the batch sync (insert/update) SQL query array for
-# given Salesforce object records.
+# Generate the batch sync (insert/update) SQL query array for given Salesforce object records.
 # 
 # + records - Salesforce object records array
 # + return - Generated batch query as a `sql:ParameterizedQuery` array

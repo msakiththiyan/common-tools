@@ -20,7 +20,7 @@ import ballerinax/salesforce;
 configurable string sfBaseUrl = ?;
 configurable SalesforceAuthConf sfAuth = ?;
 
-// Initialise Salesforce service client
+// Initialize Salesforce service client
 @display {
     label: "Salesforce Connector",
     id: "salesforce-connector"

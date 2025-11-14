@@ -16,8 +16,7 @@
 configurable SfSyncMinimalConf accountSync = {enabled: true, periodInHours: 4.0};
 configurable SfSyncMinimalConf opportunitySync = {enabled: true, periodInHours: 4.0};
 
-# Get the Salesforce sync configuration for the given Salesforce object
-# defined within the service configuration.
+# Get the Salesforce sync configuration for the given Salesforce object defined within the service configuration.
 # 
 # + syncObj - Salesforce object to sync
 # + return - Sync configuration as a `SfSyncConf` record, or `error` 
