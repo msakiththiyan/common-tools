@@ -1,4 +1,4 @@
--- Updated 25/09/2025 (v1.0.14)
+-- Salesforce Sync Database and Tables Creation Script
 
 DROP DATABASE IF EXISTS `salesforce_sync`;
 CREATE DATABASE IF NOT EXISTS `salesforce_sync`;
