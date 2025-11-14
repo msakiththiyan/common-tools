@@ -136,7 +136,7 @@ function dbCheckProcessing() returns boolean|error {
             sf_log
         WHERE
             status = ${PROCESSING}
-            && start_time > ${hourAgoTime}
+            AND start_time > ${hourAgoTime}
     `;
     int|error result = dbClient->queryRow(query);
     if result is int {
