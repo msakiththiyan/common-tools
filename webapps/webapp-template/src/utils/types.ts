@@ -14,9 +14,10 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { Collection } from "@slices/collectionSlice/collection";
 import { BasicUserInfo, DecodedIDTokenPayload } from "@asgardeo/auth-spa";
-import { Role } from "@slices/authSlice";
+
+import { Role } from "@slices/authSlice/auth";
+import { Collection } from "@slices/collections/collection";
 
 export type stateType = "failed" | "success" | "loading" | "idle";
 
@@ -32,7 +33,6 @@ export interface AuthState {
 
 export interface AuthData {
   userInfo: BasicUserInfo;
-  idToken: string;
   decodedIdToken: DecodedIDTokenPayload;
 }
 
