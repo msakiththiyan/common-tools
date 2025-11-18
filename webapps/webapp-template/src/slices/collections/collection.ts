@@ -160,7 +160,7 @@ const CollectionSlice = createSlice({
         state.stateMessage = "Successfully created!";
       })
       .addCase(addCollections.rejected, (state) => {
-        state.state = State.failed;
+        state.submitState = State.failed;
         state.stateMessage = "Failed to create!";
       });
   },
