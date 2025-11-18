@@ -13,7 +13,6 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-
 import CloseIcon from "@mui/icons-material/Close";
 import DoneIcon from "@mui/icons-material/Done";
 import SaveAltIcon from "@mui/icons-material/SaveAlt";
@@ -88,7 +87,7 @@ const ConfirmationModalContextProvider: React.FC<ConfirmationModalContextProvide
   const [content, setContent] = useState<{
     title: string;
     message: string | React.ReactNode;
-    type: "update" | "send" | "upload" | "accept";
+    type: ConfirmationType
     action: (value?: string) => void;
     okText?: string;
     cancelText?: string;
@@ -96,14 +95,14 @@ const ConfirmationModalContextProvider: React.FC<ConfirmationModalContextProvide
   }>({
     title: "",
     message: "",
-    type: "send",
+    type: ConfirmationType.send,
     action: () => {},
   });
 
   const handleShow = (
     title: string,
     message: string | React.ReactNode,
-    type: "update" | "send" | "upload" | "accept",
+    type: ConfirmationType,
     action: (value?: string) => void,
     okText?: string,
     cancelText?: string,
@@ -139,7 +138,7 @@ const ConfirmationModalContextProvider: React.FC<ConfirmationModalContextProvide
     setContent({
       title: "",
       message: "",
-      type: "accept",
+      type: ConfirmationType.accept,
       action: () => {},
       okText: undefined,
       cancelText: undefined,
