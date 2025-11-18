@@ -293,7 +293,7 @@ const Sidebar = (props: SidebarProps) => {
                       }}
                     >
                       {!props.open ? (
-                        <Typography variant="body2">v1</Typography>
+                        <Typography variant="body2">v{pJson.version}</Typography>
                       ) : (
                         <Typography variant="body2">
                           v {pJson.version} | © {new Date().getFullYear()} WSO2 LLC
