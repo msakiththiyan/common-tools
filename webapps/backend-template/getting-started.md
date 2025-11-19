@@ -37,6 +37,8 @@
         maxWaitInterval = <Max waiting interval: 20.0>
 
 # Database Configurations.
+[sample_app.database]
+    connectTimeout = <Connection timeout in: 10.0>
 [sample_app.database.databaseConfig]
     host = "<Database host>"
     user = "<Database user name>"
@@ -47,8 +49,6 @@
         maxOpenConnections = <Maximum open connections: 10>
         maxConnectionLifeTime = <Maximum connection lifetime: 100.0>
         minIdleConnections= <Maximum idle connections: 3>
-    [sample_app.database.databaseConfig.options]
-        connectTimeout = <Connection timeout in: 10.0>
     [sample_app.database.databaseConfig.options.ssl]
         mode = "PREFERRED"
 
