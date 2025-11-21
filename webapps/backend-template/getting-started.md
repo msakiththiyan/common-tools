@@ -72,7 +72,7 @@
 
 ## Test
 
-+You can write ballerina tests to test the code. You can find more details in the [Ballerina testing documentation](https://ballerina.io/learn/test-ballerina-code/test-a-simple-function/).  
+You can write ballerina tests to test the code. You can find more details in the [Ballerina testing documentation](https://ballerina.io/learn/test-ballerina-code/test-a-simple-function/).  
 To run the test you need to have an Asgardeo ID token.
 
 You can get a token from the sample Asgardeo app or using the webapp-template itself.

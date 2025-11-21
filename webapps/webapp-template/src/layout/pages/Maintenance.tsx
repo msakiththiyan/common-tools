@@ -15,7 +15,7 @@
 // under the License.
 
 import { Box, Typography } from "@mui/material";
-import MaintenanceGif from "@assets/images/maintenance.gif"
+import MaintenanceGif from "@assets/images/maintenance.gif";
 
 export default function MaintenancePage() {
   return (
