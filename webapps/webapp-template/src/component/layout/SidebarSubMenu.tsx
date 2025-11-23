@@ -37,7 +37,6 @@ const item = {
 };
 
 function SidebarSubMenu({ parentRoute, open }: { parentRoute: RouteDetail; open: boolean }) {
-  const theme = useTheme();
 
   return (
     <AnimatePresence>
@@ -51,13 +50,17 @@ function SidebarSubMenu({ parentRoute, open }: { parentRoute: RouteDetail; open:
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: open ? theme.spacing(1) : theme.spacing(2),
+            gap: "8px",
             width: "100%",
             overflow: "hidden",
           }}
         >
           {parentRoute.children!.map((child) => (
-            <motion.div key={child.path} variants={item} style={{ width: "100%" }}>
+            <motion.div
+              key={child.path}
+              variants={item}
+              style={{ width: "100%", }}
+            >
               <SubLink
                 to={child.path as string}
                 parentPath={parentRoute.path}
