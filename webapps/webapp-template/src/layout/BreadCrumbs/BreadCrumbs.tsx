@@ -87,13 +87,7 @@ export default function BasicBreadcrumbs() {
                     },
                   }}
                 >
-                  <Typography
-                    key={`${path}-full`}
-                    variant="caption"
-                    sx={{ color: theme.palette.customText.primary.p3.active }}
-                  >
-                    {label}
-                  </Typography>
+                  {label}
                 </Box>
               </Tooltip>
             ) : (
@@ -123,12 +117,12 @@ export default function BasicBreadcrumbs() {
   };
 
   return (
-      <Box
-        sx={{
-          ml: -.5
-        }}
-      >
-        {renderBreadCrumbs()}
-      </Box>
+    <Box
+      sx={{
+        ml: -0.5,
+      }}
+    >
+      {renderBreadCrumbs()}
+    </Box>
   );
 }

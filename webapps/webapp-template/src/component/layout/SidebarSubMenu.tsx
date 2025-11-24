@@ -59,7 +59,7 @@ function SidebarSubMenu({ parentRoute, open }: { parentRoute: RouteDetail; open:
             <motion.div
               key={child.path}
               variants={item}
-              style={{ width: "100%", }}
+              style={{ width: "100%" }}
             >
               <SubLink
                 to={child.path as string}

@@ -59,7 +59,7 @@ export default function Layout() {
     }
   }, [navigate]);
 
-   return (
+  return (
     <ConfirmationModalContextProvider>
       {/* Full screen container */}
       <Box
@@ -68,7 +68,6 @@ export default function Layout() {
           flexDirection: "column",
           height: "100vh",
           width: "100vw",
-          // backgroundColor: "#000",
           backgroundColor: theme.palette.surface.primary.active,
         }}
       >

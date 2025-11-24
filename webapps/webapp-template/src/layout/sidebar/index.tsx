@@ -78,7 +78,7 @@ const Sidebar = (props: SidebarProps) => {
           background: "none",
           display: "flex",
           alignItems: "center",
-          justifyContent: props.open ? "flex-center" : "center",
+          justifyContent: "center",
           gap: theme.spacing(1),
           color: theme.palette.customNavigation.text,
           transition: "all 0.2s ease-in-out",
@@ -213,7 +213,7 @@ const Sidebar = (props: SidebarProps) => {
               <Divider
                 sx={{
                   width: "100%",
-                  backgroundColor: theme.palette.customNavigation.clickedBg
+                  backgroundColor: theme.palette.customNavigation.clickedBg,
                 }}
               />
 
