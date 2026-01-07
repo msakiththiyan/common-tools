@@ -1,2 +1,270 @@
 package parser
 
+import (
+	"bufio"
+	"fmt"
+	"io"
+	"regexp"
+	"strconv"
+	"strings"
+)
+
+// Thread represents a single thread from the dump
+type Thread struct {
+	ID            string   `json:"id"`
+	Name          string   `json:"name"`
+	ThreadPool    string   `json:"thread_pool,omitempty"` // Omits empty pool names before enrichment
+	State         string   `json:"state"`
+	NativeID      int64    `json:"native_id"`
+	StackTrace    []string `json:"stack_trace"`
+	ElapsedTime   float64  `json:"elapsed_time_s"`
+	CPUTime       float64  `json:"cpu_time_ms"`
+	CPUPercentage float64  `json:"cpu_percent"`
+
+	// Fields for Rules Engine
+	RiskLevel      string   `json:"risk_level"` // "CRITICAL", "HIGH", "MEDIUM", "INFO"
+	Issues         []string `json:"issues"`
+	Recommendation string   `json:"recommendation"`
+}
+
+// A helper method for Grule to call inside rules
+func (t *Thread) AddIssue(issue string) {
+	t.Issues = append(t.Issues, issue)
+}
+
+// ThreadUsage represents thread usage data
+type ThreadUsage struct {
+	CPUPercentage float64 `json:"cpu_percent"`
+	UserTime      float64 `json:"user_time_ms"`
+	TID           int64   `json:"tid"`
+}
+
+// GlobalStats holds aggregate data for Global Rules
+type GlobalStats struct {
+	TotalThreads        int
+	BlockedCount        int
+	BlockedPercentage   float64
+	ThreadCountGrowth   float64
+	IsUsageDataProvided bool
+}
+
+var (
+	//Captures Thread name and Thread ID
+	threadHeaderRE = regexp.MustCompile(`^"(.+?)"\s+.*tid=(\S+)`)
+	//Captures Native Thread ID in hex
+	nidRE = regexp.MustCompile(`nid=0[xX]([0-9a-fA-F]+)`)
+	//Captures Thread State
+	stateRE = regexp.MustCompile(`\s*java\.lang\.Thread\.State:\s+(.+)`)
+	//Captures Stack Trace lines
+	stackLineRE = regexp.MustCompile(`^\s+(at\s+|-\s+locked|\+?\s*waiting).*`)
+	//Captures cpu attribute
+	cpuAttributeRE = regexp.MustCompile(`cpu=([\d\.]+)\s*(ms|s|ns)?`)
+	//Captures elapsed attribute
+	elapsedAttributeRE = regexp.MustCompile(`elapsed=([\d\.]+)\s*(ms|s)?`)
+)
+
+/* Parsing Thread Dumps */
+
+func ParseThread(r io.Reader) ([]Thread, error) {
+	var threads []Thread
+	var currentThread *Thread
+
+	scanner := bufio.NewScanner(r)
+	buf := make([]byte, 0, 64*1024)
+	scanner.Buffer(buf, 1024*1024)
+
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		// Check for thread header
+		if strings.HasPrefix(line, `"`) {
+			if currentThread != nil {
+				threads = append(threads, *currentThread)
+			}
+			match := threadHeaderRE.FindStringSubmatch(line)
+			if len(match) >= 3 {
+				t := &Thread{
+					Name:       match[1],
+					ID:         match[2],
+					StackTrace: []string{},
+					Issues:     []string{}, // Initialize empty
+				}
+
+				// Extract Native ID
+				if nidMatch := nidRE.FindStringSubmatch(line); len(nidMatch) >= 2 {
+					if val, err := strconv.ParseInt(nidMatch[1], 16, 64); err == nil {
+						t.NativeID = val
+					}
+				}
+
+				// Extract CPU Time
+				if m := cpuAttributeRE.FindStringSubmatch(line); len(m) >= 2 {
+					val, err := strconv.ParseFloat(m[1], 64)
+					if err == nil {
+						unit := ""
+						if len(m) > 2 {
+							unit = m[2]
+						}
+						if unit == "s" {
+							t.CPUTime = val * 1000
+						} else {
+							t.CPUTime = val
+						}
+					}
+				}
+
+				// Extract Elapsed Time
+				if m := elapsedAttributeRE.FindStringSubmatch(line); len(m) >= 2 {
+					val, err := strconv.ParseFloat(m[1], 64)
+					if err == nil {
+						unit := ""
+						if len(m) > 2 {
+							unit = m[2]
+						}
+						if unit == "ms" {
+							t.ElapsedTime = val / 1000
+						} else {
+							t.ElapsedTime = val
+						}
+					}
+				}
+				currentThread = t
+			}
+			continue
+		}
+
+		if currentThread == nil {
+			continue
+		}
+
+		// Check for State
+		if strings.Contains(line, "java.lang.Thread.State") {
+			match := stateRE.FindStringSubmatch(line)
+			if len(match) >= 2 {
+				rawState := strings.TrimSpace(match[1])
+				// Split by space and take the first part to remove things like "(on object monitor)"
+				parts := strings.Split(rawState, " ")
+				if len(parts) > 0 {
+					// Will set State to just "WAITING"
+					currentThread.State = parts[0]
+				}
+			}
+			continue
+		}
+
+		// Check for Stacktrace
+		if stackLineRE.MatchString(line) {
+			currentThread.StackTrace = append(currentThread.StackTrace, strings.TrimSpace(line))
+		}
+	}
+
+	if currentThread != nil {
+		threads = append(threads, *currentThread)
+	}
+
+	return threads, scanner.Err()
+}
+
+/* Parsing Thread Usage */
+
+func ParseThreadUsage(r io.Reader) ([]ThreadUsage, error) {
+	var usages []ThreadUsage
+	scanner := bufio.NewScanner(r)
+
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		columns := strings.Fields(line)
+
+		// 4 columns: PID, TID, %CPU, TIME
+		if len(columns) < 4 {
+			continue
+		}
+		if columns[0] == "PID" {
+			continue
+		}
+
+		// Parse TID
+		tidRaw := columns[1]
+		var tidInt int64
+		// Handle hex and decimal TID
+		if strings.HasPrefix(strings.ToLower(tidRaw), "0x") {
+			val, err := strconv.ParseInt(tidRaw[2:], 16, 64)
+			if err != nil {
+				continue
+			}
+			tidInt = val
+		} else {
+			val, err := strconv.Atoi(tidRaw)
+			if err != nil {
+				continue
+			}
+			tidInt = int64(val)
+		}
+
+		// Parse CPU Percentage
+		cpuStr := strings.Trim(columns[2], " %")
+		cpuVal, err := strconv.ParseFloat(cpuStr, 64)
+		if err != nil {
+			continue
+		}
+
+		timeSeconds := parseTime(columns[3])
+		timeMs := timeSeconds * 1000
+
+		usages = append(usages, ThreadUsage{
+			TID:           tidInt,
+			CPUPercentage: cpuVal,
+			UserTime:      timeMs,
+		})
+	}
+	return usages, nil
+}
+
+func parseTime(t string) float64 {
+	t = strings.TrimSpace(t)
+	if strings.Contains(t, ":") {
+		parts := strings.Split(t, ":")
+		var totalSeconds float64
+		multiplier := 1.0
+		for i := len(parts) - 1; i >= 0; i-- {
+			val, err := strconv.ParseFloat(parts[i], 64)
+			if err == nil {
+				totalSeconds += val * multiplier
+			}
+			multiplier *= 60
+		}
+		return totalSeconds
+	}
+	val, _ := strconv.ParseFloat(t, 64)
+	return val
+}
+
+/* Correlation Logic */
+
+func ProcessAndCorrelate(dumpReader, usageReader io.Reader) ([]Thread, error) {
+	threads, err := ParseThread(dumpReader)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse dump: %w", err)
+	}
+
+	if usageReader != nil {
+		usages, err := ParseThreadUsage(usageReader)
+		if err == nil {
+			usageMap := make(map[int64]ThreadUsage)
+			for _, u := range usages {
+				usageMap[u.TID] = u
+			}
+			for i := range threads {
+				t := &threads[i]
+				if usage, found := usageMap[t.NativeID]; found {
+					t.CPUPercentage = usage.CPUPercentage
+					if usage.UserTime > 0 {
+						t.CPUTime = usage.UserTime
+					}
+				}
+			}
+		}
+	}
+
+	return threads, nil
+}

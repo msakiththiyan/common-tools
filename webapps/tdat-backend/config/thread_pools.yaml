@@ -1,0 +1,53 @@
+# Threadpools categorization and configuration of Thread Dumps
+
+pools:
+  # Disruptor Based Flusher Threadpool
+  - name: "DisruptorBasedFlusher"
+    patterns:
+      - "^DisruptorBasedFlusher-\\d+$"
+
+  # http-nio- Threadpool
+  - name: "Tomcat HTTP Threads"
+    patterns:
+      - "^http-nio-\\d+-exec-\\d+$"
+
+  # https-jsse-nio- Threadpool
+  - name: "Tomcat HTTPS Threads"
+    patterns:
+      - "^https-jsse-nio-\\d+-exec-\\d+$"
+
+  # Worker Threads Threadpool
+  - name: "Worker Threads"
+    patterns:
+      - "^pool-\\d+-thread-\\d+$"
+
+  # JobPoolThread Threadpool
+  - name: "JobPool Threads"
+    patterns:
+      - "^JobPoolThread-\\d+$"
+
+  # Databridge Core pool Threadpool
+  - name: "Databridge Core Threads"
+    patterns:
+      - "^Databridge-Core-pool-\\d+-thread-\\d+$"
+
+  # CacheExpiryScheduler Threadpool
+  - name: "CacheExpiryScheduler"
+    patterns:
+      - "^CacheExpirySchedulerThread-\\d+$"
+
+  # DisruptorInboundEvent Threadpool
+  - name: "DisruptorInboundEvent"
+    patterns:
+      - "^DisruptorInboundEventThread-\\d+$"
+
+  # MINA Network Transport Threadpool
+  - name: "MINA Network Transport"
+    patterns:
+      - "^MINANetworkTransport\\(Acceptor\\)-\\d+$"
+      - "^MINANetworkTransport\\(Client\\)-\\d+$"
+
+  # PassThroughMessageProcessor Threadpool
+  - name: "PassThroughMessageProcessor"
+    patterns:
+      - "^PassThroughMessageProcessor-\\d+-Thread-\\d+$"

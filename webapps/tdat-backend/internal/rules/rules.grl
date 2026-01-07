@@ -1,0 +1,44 @@
+// Rule 1: Deadlock (Requires IsDeadlocked field to be populated by parser first)
+// rule DeadlockDetection "Detect threads blocked waiting for monitor locks" salience 10 {
+//     when
+//        t.IsDeadlocked == true
+//     then
+//        t.RiskLevel = "CRITICAL";
+//        t.AddIssue("Deadlock Detected: Cycle involving thread");
+//        t.Recommendation = "Fix synchronization order immediately.";
+//        Retract("DeadlockDetection");
+// }
+
+// Rule 2: Blocked for too long (Added time check)
+rule BlockedThreadsLong "Detect threads blocked for > 10s" salience 10 {
+    when
+       t.State == "BLOCKED" &&
+       t.ElapsedTime > 10.0  // Check elapsed time in seconds
+    then
+       t.RiskLevel = "HIGH";
+       t.AddIssue("Thread Blocked for > 10s (" + t.ElapsedTime + "s)");
+       Retract("BlockedThreadsLong");
+}
+
+// Rule 3: Idle for too long (Added time check)
+rule IdleThreadsLong "Threads that remain WAITING for > 10s" salience 10 {
+    when
+       (t.State == "WAITING" || t.State == "TIMED_WAITING") &&
+       t.ElapsedTime > 10.0 // Check elapsed time in seconds
+    then
+       t.RiskLevel = "MEDIUM";
+       t.AddIssue("Long Idle Duration (" + t.ElapsedTime + "s)");
+       t.Recommendation = "Investigate if this thread is stuck waiting for an external resource.";
+       Retract("IdleThreadsLong");
+}
+
+// Rule 4: High CPU Usage
+rule HighCpuUsage "Flag threads consuming excessive CPU" salience 10 {
+    when
+        t.CPUPercentage > 50.0
+    then
+        t.RiskLevel = "CRITICAL";
+        t.AddIssue("High CPU Usage (" + t.CPUPercentage + "%)");
+        t.Recommendation = "Investigate for infinite loops or heavy calculation.";
+        Retract("HighCpuUsage");
+}
