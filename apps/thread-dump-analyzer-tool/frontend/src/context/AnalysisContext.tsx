@@ -25,6 +25,7 @@ interface AnalysisContextType {
 
 const AnalysisContext = createContext<AnalysisContextType | undefined>(undefined);
 
+// In-memory only by design: a refresh clears the session so customer thread-dump data is never stored at rest in the browser.
 export const AnalysisProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [data, setData] = useState<AnalysisResponse | null>(null);
 

@@ -1,3 +1,8 @@
+// Firing contract: every rule guards on t.Analyzed == false and sets t.Analyzed = true, so only the highest-salience matching rule fires per thread.
+// Retract() is intentionally not used; Grule itself resets working memory and rule flags on every Execute call.
+// The parser pre-flags JVM-reported deadlocks and runaway CPU (>= 100%) with Analyzed = true, so those rules act as defensive backups.
+// Lockstep: adding or renaming a rule (or its issue prefix) requires the matching entry in internal/analyzer/patterns.go.
+
 // Rule 1: Deadlock Detection
 rule DeadlockDetection "Detect threads in a deadlock" salience 100 {
     when

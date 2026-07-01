@@ -258,6 +258,7 @@ const ThreadExplorer: React.FC = () => {
                 {/* Thread Rows */}
                 {paginatedThreads.length > 0 ? (
                     paginatedThreads.map(({ data: thread, stats }) => (
+                        // Key on the full composite identity: the aggregator can emit distinct histories sharing thread.id
                         <ThreadRow
                             key={`${thread.id}|${thread.name}|${thread.native_id}|${thread.thread_pool}`}
                             thread={thread}

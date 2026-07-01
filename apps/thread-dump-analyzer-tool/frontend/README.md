@@ -62,6 +62,8 @@ Browse all threads grouped by pool. Sort and filter by state, risk level, or nam
 ### Lock Contention (`/lock-contention`)
 Frontend-derived lock contention graph built from thread stack trace data. Shows lock owners (threads holding contended monitors), the blocked threads waiting on each owner, contention counts per monitor address, and deadlock cycle visualizations with directional chain diagrams.
 
+Any unknown route renders a standalone 404 page (`layout/pages/404.tsx`).
+
 ## Key Implementation Details
 
 **Session state** - analysis results are held in plain in-memory React state in `AnalysisContext`. A page refresh clears the session and the user must re-upload. Persistence (originally via `localforage`/IndexedDB) was removed deliberately so customer thread-dump data is not stored at rest in the browser.
@@ -69,6 +71,8 @@ Frontend-derived lock contention graph built from thread stack trace data. Shows
 **Job polling** - `useAnalyzeThreads` uses TanStack React Query's `refetchInterval` to poll `GET /analyze/jobs/{id}` every 3 seconds. Polling stops automatically on `completed` or `failed` status.
 
 **Health score** - the backend sends an authoritative 0-100 `health_score` and a `health_factors[]` breakdown. The dashboard renders the number and breakdown verbatim (gauge + tooltip in `SummaryCards`); it does not recompute the score client-side.
+
+**Report export** - the header's export action (`useExportReport` + `utils/reportFormatter.ts`) downloads the session as a plain-text report: executive summary, metrics (including the health score with its score-deduction breakdown, mirroring the dashboard tooltip), key findings, AI insights, thread clusters, and lock contention.
 
 **Finding categorization** - `utils/ruleCategories.ts` maps raw backend Grule issue strings to dashboard-friendly titles, descriptions, and severities (`critical`/`high`/`medium`/`info`) via an ordered first-match-wins regex list. `categorizeIssue` is used by `DashboardHome` to group key findings; keep `RULE_CATEGORIES` aligned with the issue strings emitted in the backend's `rules.grl`.
 
@@ -139,7 +143,8 @@ frontend/
     │   ├── header/index.tsx                AppBar (logo, title, theme toggle, export, logout)
     │   ├── header/ThemeToggle.tsx          Light/dark/system theme dropdown
     │   ├── sidebar/index.tsx               Collapsible nav drawer
-    │   └── footer/index.tsx                Copyright footer
+    │   ├── footer/index.tsx                Copyright footer
+    │   └── pages/404.tsx                   Standalone 404 page for unknown routes
     ├── pages/
     │   ├── upload/
     │   │   ├── index.tsx                   Upload page (file pairing, analyze trigger, phase backdrop)

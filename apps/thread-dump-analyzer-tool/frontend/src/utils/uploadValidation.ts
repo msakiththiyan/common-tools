@@ -52,6 +52,7 @@ export function extractFileKey(filename: string): string {
     const lowerKey = key.toLowerCase();
     for (const prefix of prefixes) {
         if (!lowerKey.startsWith(prefix)) continue;
+        // Strip only at a _/-/. boundary or end-of-string, so "td" does not eat into names like "today.log".
         const boundary = lowerKey.charAt(prefix.length);
         if (boundary !== '' && boundary !== '_' && boundary !== '-' && boundary !== '.') continue;
         key = key.substring(prefix.length).replace(/^[_\-.]/, '');
