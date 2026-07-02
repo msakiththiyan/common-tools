@@ -14,7 +14,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import type { AnalysisResponse, Thread, ThreadSnapshot, AiInsights } from '@/types/api';
+import type { AnalysisResponse, Thread, ThreadSnapshot, AiInsights, HealthFactor } from '@/types/api';
 import { deriveLockOwnerCentricData } from './lockContentionAnalysis';
 import {
     type FindingSeverity,
@@ -156,6 +156,7 @@ ${body}`;
 function formatMetrics(
     threadCount: number,
     healthScore: number,
+    healthFactors: HealthFactor[],
     blockedCount: number,
     criticalCount: number,
     deadlockCycles: number,
@@ -163,6 +164,9 @@ function formatMetrics(
     stateDistribution: Record<string, number>,
 ): string {
     const header = sectionHeader('METRICS');
+    const deductionLabelWidth = healthFactors.length > 0
+        ? Math.max(...healthFactors.map(f => f.label.length))
+        : 0;
     const lines = [
         kvLine('Total Threads', threadCount),
         kvLine('Health Score', `${healthScore} / 100`),
@@ -170,6 +174,12 @@ function formatMetrics(
         kvLine('Deadlock Cycles', deadlockCycles > 0 ? `${deadlockCycles}  ⚠` : String(deadlockCycles)),
         kvLine('CRITICAL Risk Threads', criticalCount > 0 ? `${criticalCount}  ⚠` : String(criticalCount)),
         ...(maxWaitTimeMs > 0 ? [kvLine('Max Wait Time', `${formatMillis(maxWaitTimeMs)}  ${waitSeverityTag(maxWaitTimeMs)}`)] : []),
+        '',
+        // Score deductions mirror the dashboard Health Score tooltip (SummaryCards).
+        '  Score Deductions:',
+        ...(healthFactors.length > 0
+            ? healthFactors.map(f => `    ${f.label.padEnd(deductionLabelWidth)}  -${f.penalty}`)
+            : ['    None (all clear)']),
         '',
         '  State Distribution:',
         ...Object.entries(stateDistribution)
@@ -512,7 +522,7 @@ export function generateReport(data: AnalysisResponse): string {
     return [
         formatHeader(data.session_id, data.timestamp),
         formatExecutiveSummary(aiInsights),
-        formatMetrics(threadCount, healthScore, blockedCount, criticalCount, deadlockCycles, maxWaitTimeMs, stateDistribution),
+        formatMetrics(threadCount, healthScore, data.health_factors ?? [], blockedCount, criticalCount, deadlockCycles, maxWaitTimeMs, stateDistribution),
         formatKeyFindings(threads),
         formatAiInsights(aiInsights),
         formatThreadClusters(snapshots),

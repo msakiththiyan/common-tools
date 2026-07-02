@@ -12,6 +12,7 @@ Upload one or more Java thread dump files (and optionally CPU usage metrics) and
 - Lock contention graph mapping each lock owner to the threads it is blocking, plus deadlock cycle detection
 - Chronological thread history when multiple dumps are uploaded
 - AI-generated executive summary, pattern recognition, and recommended actions (via Anthropic Claude)
+- One-click export of the whole session as a plain-text report (metrics with score deductions, findings, AI insights, per-thread detail)
 
 ## Projects
 
@@ -123,11 +124,13 @@ Both images run as a non-root user with a UID in the 10000-20000 range (Choreo's
 ```text
 POST /analyze/jobs          # Upload files → returns { job_id } (202 Accepted)
 GET  /analyze/jobs/{id}     # Poll for result → { status, result }
-GET  /health                        # Liveness probe
-GET  /                              # HTML upload form for manual testing
+GET  /health                # Liveness probe
+GET  /                      # HTML upload form for manual testing (served only when AUTH_ENABLED=false)
 ```
 
-When `AUTH_ENABLED` (the default), both `/analyze/jobs` endpoints require an `Authorization: Bearer <jwt>` header (validated against Asgardeo) and return `401` otherwise; `GET /health` and the `GET /` form stay open.
+The machine-readable contract is `backend/openapi.yaml`: OpenAPI 3.0 with full request/response schemas for every endpoint (job envelope, result, threads, snapshots, health factors, pattern matches, AI insights), mirroring the backend's Go types.
+
+When `AUTH_ENABLED` (the default), both `/analyze/jobs` endpoints require an `Authorization: Bearer <jwt>` header (validated against Asgardeo) and return `401` otherwise. `GET /health` stays open; the manual-testing form sends no token, so it is mounted only when auth is off.
 
 The analysis runs asynchronously. Poll the status endpoint until `status` is `completed` or `failed`. Jobs run under a configurable deadline (`JOB_TIMEOUT`, default 2m); on expiry the job is marked `failed` and the pipeline exits at the next checkpoint. Invalid uploads also fail fast: a non-dump file or a malformed thread-usage file marks the job `failed` with a clear, file-named `error` instead of returning a partial result.
 

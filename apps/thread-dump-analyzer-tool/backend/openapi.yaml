@@ -116,25 +116,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  job_id:
-                    type: string
-                  status:
-                    type: string
-                    enum: [pending, running, completed, failed]
-                  created_at:
-                    type: string
-                    format: date-time
-                  updated_at:
-                    type: string
-                    format: date-time
-                  result:
-                    type: object
-                    description: Populated only when status is completed
-                  error:
-                    type: string
-                    description: Populated only when status is failed
+                $ref: '#/components/schemas/Job'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
@@ -185,3 +167,209 @@ components:
           schema:
             type: string
           example: "Server busy, too many concurrent analyses; try again shortly"
+
+  # Schema names mirror the Go types (internal/job, internal/analyzer, internal/ai); keep them in lockstep.
+  schemas:
+    Job:
+      type: object
+      description: |
+        One asynchronous analysis job. The creator's JWT subject is recorded server-side to gate reads
+        (cross-owner GETs return 404) but is never serialized. Terminal jobs are evicted after JOB_TTL.
+      required: [job_id, status, created_at, updated_at]
+      properties:
+        job_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending, running, completed, failed]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        result:
+          allOf:
+            - $ref: '#/components/schemas/AggregatedAnalysisResponse'
+          description: Present only when status is completed.
+        error:
+          type: string
+          description: |
+            User-facing failure reason; present only when status is failed. Upload validation is
+            fail-fast: any non-dump file (0 parsed threads) or malformed usage file (0 usable rows)
+            fails the whole job with a message naming the offending file, and no partial result is produced.
+          example: 'Invalid file: no Java threads found in "notes.txt". Is it a Java thread dump?'
+
+    AggregatedAnalysisResponse:
+      type: object
+      description: Top-level analysis result, thread-centric across all uploaded dumps.
+      required: [session_id, timestamp, threads, health_score]
+      properties:
+        session_id:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+          description: RFC3339 time the result was produced.
+        threads:
+          type: array
+          description: One entry per unique thread identity, each holding its per-dump snapshot history.
+          items:
+            $ref: '#/components/schemas/AnalyzedThread'
+        thread_pools:
+          type: object
+          description: Pool metadata keyed by pool name, sourced from thread_pools.yaml. Omitted when empty.
+          additionalProperties:
+            $ref: '#/components/schemas/PoolInfo'
+        health_score:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: |
+            Deterministic 0-100 score computed from the latest dump only (latest chosen by natural-sorting
+            dump filenames, so dump_2 sorts before dump_10). Starts at 100 and subtracts the health_factors
+            penalties; clients should render it directly rather than recompute.
+        health_factors:
+          type: array
+          description: Named penalties behind the score; penalties sum to (100 - health_score). Omitted when none applied.
+          items:
+            $ref: '#/components/schemas/HealthFactor'
+        pattern_matches:
+          type: array
+          description: Per-rule unique-thread hit counts. Read this instead of substring-scanning issues[]. Omitted when no rule fired.
+          items:
+            $ref: '#/components/schemas/PatternMatch'
+        ai_insights:
+          allOf:
+            - $ref: '#/components/schemas/AIInsights'
+          description: Omitted when the AI call fails; a static placeholder is returned when the key is unset or AI insights are disabled by policy.
+        errors:
+          type: array
+          description: Non-fatal per-file diagnostics and AI errors. Omitted when empty.
+          items:
+            type: string
+
+    AnalyzedThread:
+      type: object
+      description: |
+        A unique thread and its chronological history across the uploaded dumps. Identity is the full
+        {id, name, native_id, thread_pool} composite: distinct histories can share id alone, so consumers
+        (list keys, joins) must use the whole tuple.
+      required: [id, name, native_id, thread_pool, snapshots]
+      properties:
+        id:
+          type: string
+          description: JVM thread id from the dump header (tid=...).
+          example: "0x00007f3c1c0f2800"
+        name:
+          type: string
+          example: "http-nio-8080-exec-1"
+        native_id:
+          type: integer
+          format: int64
+          description: OS thread id from nid= (hex or decimal); joins the CPU usage file's TID column.
+        thread_pool:
+          type: string
+          description: Pool assigned by regex classification, or "Standalone/ Ungrouped Threads" when unmatched.
+        snapshots:
+          type: array
+          description: One snapshot per dump the thread appeared in, in upload order.
+          items:
+            $ref: '#/components/schemas/ThreadSnapshot'
+
+    ThreadSnapshot:
+      type: object
+      description: The thread's state in one dump file, including any rule-engine findings for that snapshot.
+      required: [dump_name, state, elapsed_time_s, cpu_time_ms, cpu_percent]
+      properties:
+        dump_name:
+          type: string
+          description: Source dump filename.
+        state:
+          type: string
+          description: Java thread state (RUNNABLE, BLOCKED, WAITING, TIMED_WAITING, ...).
+          example: "BLOCKED"
+        stack_trace:
+          type: array
+          items:
+            type: string
+          description: Stack frames including monitor lines ("- locked <0x...>", "waiting to lock <0x...>").
+        elapsed_time_s:
+          type: number
+          description: Elapsed time in seconds from the dump header.
+        cpu_time_ms:
+          type: number
+          description: CPU time in milliseconds, from the dump header or the correlated usage file.
+        cpu_percent:
+          type: number
+          description: CPU percentage from the usage file, or inferred as cpu_time / elapsed_time when absent.
+        risk_level:
+          type: string
+          enum: [CRITICAL, HIGH, MEDIUM, INFO]
+          description: Worst finding for this snapshot; omitted when no rule fired.
+        issues:
+          type: array
+          items:
+            type: string
+          description: Rule-emitted issue descriptions; each starts with a stable prefix listed in pattern_matches[].issue_prefix.
+        recommendation:
+          type: string
+          description: Remediation hint from the fired rule; omitted when no rule fired.
+
+    PoolInfo:
+      type: object
+      description: Human-readable metadata for one configured thread pool.
+      required: [description, expected_behavior]
+      properties:
+        description:
+          type: string
+        expected_behavior:
+          type: string
+
+    HealthFactor:
+      type: object
+      description: One named penalty that lowered the health score.
+      required: [label, penalty]
+      properties:
+        label:
+          type: string
+          example: "3 blocked threads"
+        penalty:
+          type: integer
+          example: 8
+
+    PatternMatch:
+      type: object
+      description: |
+        One fired rule's unique-thread hit count. rule_name mirrors the rule in internal/rules/rules.grl
+        (plus the parser pre-flag RunawayCPUThread); issue_prefix is the stable leading substring of the
+        issue strings that rule emits.
+      required: [rule_name, issue_prefix, matched_thread_count]
+      properties:
+        rule_name:
+          type: string
+          example: "DatabaseWait"
+        issue_prefix:
+          type: string
+          example: "Thread executing Database/JDBC operations for > 5s"
+        matched_thread_count:
+          type: integer
+          description: Unique threads (not snapshots) whose issues match the prefix.
+          example: 3
+
+    AIInsights:
+      type: object
+      description: |
+        Three-section AI analysis from Anthropic Claude. Thread names, issues, and stack frames are
+        scrubbed of secrets and PII before they enter the prompt; at most 40 high-signal threads are sent.
+      required: [executive_summary, pattern_recognition, recommended_actions]
+      properties:
+        executive_summary:
+          type: string
+        pattern_recognition:
+          type: string
+          description: Key findings and cross-thread patterns.
+        recommended_actions:
+          type: string

@@ -14,7 +14,7 @@ go run ./cmd/api
 # Server starts at http://localhost:8080
 ```
 
-The server logs its listening URL on startup (e.g. `url=http://localhost:8080`) so it can be opened directly. When deploying behind a public hostname, set `PUBLIC_URL` (see below) so the startup log points to the externally reachable URL. A built-in HTML form at that URL can be used for manual testing without the frontend.
+The server logs its listening URL on startup (e.g. `url=http://localhost:8080`) so it can be opened directly. When deploying behind a public hostname, set `PUBLIC_URL` (see below) so the startup log points to the externally reachable URL. A built-in HTML form at that URL can be used for manual testing without the frontend; it is served only when `AUTH_ENABLED=false`, since the form sends no token.
 
 If `ANTHROPIC_API_KEY` is not set, analysis still completes and AI insights return a static "unavailable" message instead of failing the job.
 
@@ -22,9 +22,11 @@ If `ANTHROPIC_API_KEY` is not set, analysis still completes and AI insights retu
 
 ## API
 
+The machine-readable contract is [`openapi.yaml`](openapi.yaml): OpenAPI 3.0 covering every endpoint, the auth scheme, and the error responses, plus full result schemas (`Job`, `AggregatedAnalysisResponse`, `AnalyzedThread`, `ThreadSnapshot`, `PoolInfo`, `HealthFactor`, `PatternMatch`, `AIInsights`) that mirror the Go types. The sections below are the human-readable companion.
+
 ### Authentication
 
-When `AUTH_ENABLED` (default `true`), `POST /analyze/jobs` and `GET /analyze/jobs/{id}` require an `Authorization: Bearer <jwt>` header. Tokens are validated in `internal/transport/http/middleware.go` against the Asgardeo JWKS (signature plus `exp`/`nbf`/`iss`/`aud`, with `JWT_AUDIENCE` required at boot) using a cached, auto-refreshing key set with 60s clock skew. Missing or invalid tokens get `401` with a `WWW-Authenticate: Bearer` challenge. `GET /health` and the `GET /` HTML form stay open. CORS wraps the mux, so preflight `OPTIONS` is answered before auth and `401`s still carry CORS headers.
+When `AUTH_ENABLED` (default `true`), `POST /analyze/jobs` and `GET /analyze/jobs/{id}` require an `Authorization: Bearer <jwt>` header. Tokens are validated in `internal/transport/http/middleware.go` against the Asgardeo JWKS (signature plus `exp`/`nbf`/`iss`/`aud`, with `JWT_AUDIENCE` required at boot) using a cached, auto-refreshing key set with 60s clock skew. Missing or invalid tokens get `401` with a `WWW-Authenticate: Bearer` challenge. `GET /health` stays open; the `GET /` HTML form sends no token, so it is mounted only when `AUTH_ENABLED=false`. CORS wraps the mux, so preflight `OPTIONS` is answered before auth and `401`s still carry CORS headers.
 
 Set `ASGARDEO_BASE_URL` and the JWKS endpoint + issuer are derived (`<base>/oauth2/jwks`, `<base>/oauth2/token`); override either with `JWT_JWKS_URL` / `JWT_ISSUER`. With `AUTH_ENABLED=false` the analyze endpoints are public (local testing only).
 
@@ -191,7 +193,7 @@ Each penalty greater than 0 becomes a `health_factor` (`{label, penalty}`); the 
 | `ASGARDEO_BASE_URL` | _(unset)_ | Asgardeo tenant base URL, e.g. `https://api.asgardeo.io/t/<org>`. JWKS (`/oauth2/jwks`) and issuer (`/oauth2/token`) are derived from it. Required when auth is on unless the two below are set. |
 | `JWT_JWKS_URL` | _(derived)_ | Explicit JWKS endpoint; overrides the value derived from `ASGARDEO_BASE_URL`. |
 | `JWT_ISSUER` | _(derived)_ | Expected `iss` claim; overrides the value derived from `ASGARDEO_BASE_URL`. |
-| `JWT_AUDIENCE` | _(unset)_ | Expected `aud` claim (set to the app's client ID). **Required when `AUTH_ENABLED=true`** — the server refuses to start without it, so a token minted for another Asgardeo app can't be replayed here. |
+| `JWT_AUDIENCE` | _(unset)_ | Expected `aud` claim (set to the app's client ID). **Required when `AUTH_ENABLED=true`**: the server refuses to start without it, so a token minted for another Asgardeo app can't be replayed here. |
 | `LOG_LEVEL` | `INFO` | slog level: `DEBUG` / `INFO` / `WARN` / `ERROR`. |
 | `LOG_FILE` | `logs/tdat-session-<ts>.log` | Path (relative to the working directory, or absolute) for the plain-text session log mirrored alongside console output. Set an explicit path to pin it, or `off`/`none`/`-` to disable file logging. Open/create failures fall back to console-only with a warning. |
 | `PORT` | `8080` | HTTP listen port. |
@@ -274,7 +276,7 @@ backend/
 ├── go.mod / go.sum                  Go module definition and dependency lock
 ├── .env.example                     Tracked template: copy to .env and fill in
 ├── .env                             Local secrets (gitignored, loaded via godotenv)
-├── openapi.yaml                     OpenAPI 3.0 specification for REST API
+├── openapi.yaml                     OpenAPI 3.0 spec: endpoints plus full request/response schemas mirroring the Go types
 ├── config/
 │   └── thread_pools.yaml            Thread pool name/regex/description definitions
 └── internal/
